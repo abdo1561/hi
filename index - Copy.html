@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS: MARKET TYCOON</title>
+<style>
+  :root {
+    --bg-primary: #0a0d14;
+    --bg-secondary: #121824;
+    --bg-card: #1a2234;
+    --bg-card-hover: #232d42;
+    --accent-green: #10b981;
+    --accent-blue: #3b82f6;
+    --accent-gold: #f59e0b;
+    --accent-purple: #8b5cf6;
+    --accent-red: #ef4444;
+    --text-main: #f3f4f6;
+    --text-muted: #9ca3af;
+    --border-color: #2e3a52;
+    --sidebar-width: 240px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  body { background-color: var(--bg-primary); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+  /* Navigation Sidebar */
+  #sidebar { width: var(--sidebar-width); background: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 10; }
+  .logo { padding: 20px; font-size: 1.2rem; font-weight: 800; color: #fff; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color); }
+  .logo span { color: var(--accent-green); }
+  .nav-menu { list-style: none; padding: 15px 10px; flex: 1; overflow-y: auto; }
+  .nav-item { padding: 12px 15px; margin-bottom: 4px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s; }
+  .nav-item:hover, .nav-item.active { background: var(--bg-card); color: #fff; }
+  .nav-item.active { border-left: 4px solid var(--accent-green); }
+  .nav-item.owner-tab { color: var(--accent-gold); }
+
+  /* Main Dashboard Area */
+  #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  header { background: var(--bg-secondary); padding: 15px 25px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+  .player-info-strip { display: flex; gap: 20px; align-items: center; }
+  .stat-badge { background: var(--bg-card); padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color); font-size: 0.9rem; font-weight: 600; }
+  .badge-owner { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-weight: bold; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+
+  /* Banner Event Notification */
+  #event-banner { background: linear-gradient(90deg, #7c3aed, #db2777); color: white; padding: 10px 20px; text-align: center; font-weight: bold; display: none; }
+
+  /* Tab View Canvas */
+  .tab-content { display: none; padding: 25px; overflow-y: auto; flex: 1; }
+  .tab-content.active { display: block; }
+
+  /* UI Cards & Grids */
+  .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat( auto-fit, minmax(220px, 1fr) ); gap: 15px; }
+
+  .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  .card h3 { margin-bottom: 15px; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; display: flex; justify-content: space-between; }
+
+  /* Buttons & Controls */
+  .btn { background: var(--accent-blue); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+  .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-success { background: var(--accent-green); }
+  .btn-danger { background: var(--accent-red); }
+  .btn-warn { background: var(--accent-gold); color: #000; }
+  .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
+  input, select, textarea { background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 6px; margin-bottom: 10px; width: 100%; }
+
+  /* Feed Box */
+  .feed-box { height: 280px; overflow-y: auto; background: #0c1017; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 0.85rem; border: 1px solid var(--border-color); }
+  .feed-item { padding: 4px 0; border-bottom: 1px solid #1a2332; }
+
+  /* Rarity Colors */
+  .rarity-Common { color: #9ca3af; }
+  .rarity-Uncommon { color: #10b981; }
+  .rarity-Rare { color: #3b82f6; }
+  .rarity-Epic { color: #8b5cf6; }
+  .rarity-Legendary { color: #f59e0b; font-weight: bold; }
+
+  /* City Map Grid */
+  .district-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
+  .district-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: 0.2s; }
+  .district-card:hover { transform: translateY(-4px); border-color: var(--accent-blue); background: var(--bg-card-hover); }
+  .district-card .icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 100; }
+  .modal-content { background: var(--bg-card); padding: 25px; border-radius: 12px; width: 450px; max-width: 90%; border: 1px solid var(--border-color); }
+
+  /* Progress Bar */
+  .progress-bg { background: var(--bg-secondary); border-radius: 10px; height: 12px; overflow: hidden; margin-top: 5px; }
+  .progress-fill { background: var(--accent-green); height: 100%; width: 0%; transition: width 0.3s; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; text-align: left; }
+  th, td { padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
+  th { background: var(--bg-secondary); color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<!-- Sidebar Navigation -->
+<div id="sidebar">
+  <div class="logo">⚡ NEXUS <span>TYCOON</span></div>
+  <ul class="nav-menu">
+    <li class="nav-item active" onclick="switchTab('home')">🏠 Home</li>
+    <li class="nav-item" onclick="switchTab('profile')">👤 Profile</li>
+    <li class="nav-item" onclick="switchTab('market')">🛒 Market</li>
+    <li class="nav-item" onclick="switchTab('auctions')">🔨 Auctions</li>
+    <li class="nav-item" onclick="switchTab('trades')">🤝 Trades</li>
+    <li class="nav-item" onclick="switchTab('messages')">💬 Messages</li>
+    <li class="nav-item" onclick="switchTab('businesses')">🏢 Businesses</li>
+    <li class="nav-item" onclick="switchTab('investments')">📈 Investments</li>
+    <li class="nav-item" onclick="switchTab('inventory')">🎒 Inventory</li>
+    <li class="nav-item" onclick="switchTab('city')">🗺️ City</li>
+    <li class="nav-item" onclick="switchTab('achievements')">🏆 Achievements</li>
+    <li class="nav-item" onclick="switchTab('settings')">⚙️ Settings</li>
+    <li class="nav-item owner-tab" id="admin-nav-item" onclick="switchTab('admin')" style="display:none;">👑 ADMIN</li>
+  </ul>
+</div>
+
+<!-- Main Area -->
+<div id="main-content">
+  <header>
+    <div class="player-info-strip">
+      <span id="user-display-name" style="font-weight:bold; font-size: 1.1rem;">Abdo</span>
+      <span id="user-role-badge"></span>
+      <div class="stat-badge">💰 Cash: $<span id="header-cash">0</span></div>
+      <div class="stat-badge">⭐ Level: <span id="header-level">1</span></div>
+      <div class="stat-badge">🚀 Prestige: <span id="header-prestige">0</span></div>
+    </div>
+    <div>
+      <select id="user-switcher" onchange="switchUserProfile(this.value)" style="width: 140px; margin:0; padding:4px 8px;">
+        <!-- Filled dynamically -->
+      </select>
+    </div>
+  </header>
+
+  <div id="event-banner">🔥 ADMIN EVENT: MARKET BOOM - ALL PRICES ARE RISING!</div>
+
+  <!-- TAB: HOME -->
+  <div id="tab-home" class="tab-content active">
+    <h2>Welcome back, <span class="current-player-name">Abdo</span>! 👋</h2>
+    <p style="color:var(--text-muted); margin-bottom: 20px;">Real-time business summary and market ticker.</p>
+
+    <div class="grid-4" style="margin-bottom: 20px;">
+      <div class="card">
+        <h3>Net Worth</h3>
+        <p style="font-size: 1.8rem; font-weight: bold; color: var(--accent-green);">$<span id="dash-networth">0</span></p>
+      </div>
+      <div class="card">
+        <h3>Inventory Value</h3>
+        <p style="font-size: 1.8rem; font-weight: bold; color: var(--accent-blue);">$<span id="dash-inv-val">0</span></p>
+      </div>
+      <div class="card">
+        <h3>Active Businesses</h3>
+        <p style="font-size: 1.8rem; font-weight: bold; color: var(--accent-purple);" id="dash-biz-count">0</p>
+      </div>
+      <div class="card">
+        <h3>XP Progress</h3>
+        <div style="font-size: 0.9rem;" id="dash-xp-text">0 / 1,000 XP</div>
+        <div class="progress-bg"><div class="progress-fill" id="dash-xp-bar"></div></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Live Activity Feed</h3>
+        <div class="feed-box" id="global-activity-feed"></div>
+      </div>
+      <div class="card">
+        <h3>Top Market Movers</h3>
+        <table id="top-movers-table">
+          <thead><tr><th>Item</th><th>Price</th><th>24h Change</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: PROFILE -->
+  <div id="tab-profile" class="tab-content">
+    <div class="card">
+      <h3>Player Profile Details</h3>
+      <p><b>Username:</b> <span class="current-player-name"></span> <span id="profile-badge"></span></p>
+      <p><b>Cash:</b> $<span id="profile-cash">0</span></p>
+      <p><b>Prestige Bonus:</b> +<span id="profile-prestige-bonus">0</span>% Income multiplier</p>
+      <br>
+      <button class="btn btn-warn" onclick="triggerPrestige()">Rebirth / Prestige Now</button>
+    </div>
+  </div>
+
+  <!-- TAB: MARKET -->
+  <div id="tab-market" class="tab-content">
+    <h2>Dynamic Marketplace</h2>
+    <p style="color:var(--text-muted); margin-bottom: 15px;">Buy rare assets, create listings, or monitor price swings.</p>
+    
+    <div class="card">
+      <h3>Create Marketplace Listing</h3>
+      <div style="display: flex; gap: 10px;">
+        <select id="list-item-select" style="flex:2;"></select>
+        <input type="number" id="list-item-price" placeholder="Price ($)" style="flex:1;">
+        <button class="btn btn-success" onclick="createListing()">List Item</button>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Global Items Index</h3>
+        <table>
+          <thead><tr><th>Name</th><th>Rarity</th><th>Price</th><th>Trend</th><th>Action</th></tr></thead>
+          <tbody id="market-items-table"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Active Player Listings</h3>
+        <table>
+          <thead><tr><th>Item</th><th>Price</th><th>Seller</th><th>Action</th></tr></thead>
+          <tbody id="active-listings-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: AUCTIONS -->
+  <div id="tab-auctions" class="tab-content">
+    <h2>Live Auctions</h2>
+    <div class="card">
+      <h3>Active Auction Listings</h3>
+      <table>
+        <thead><tr><th>Item</th><th>Current Bid</th><th>High Bidder</th><th>Seller</th><th>Time Left</th><th>Action</th></tr></thead>
+        <tbody id="auctions-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: TRADES -->
+  <div id="tab-trades" class="tab-content">
+    <h2>P2P Trading Hub</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Create Trade Offer</h3>
+        <label>Select Recipient Player:</label>
+        <select id="trade-target-player"></select>
+        <label>Your Cash Offer ($):</label>
+        <input type="number" id="trade-offered-cash" placeholder="0">
+        <label>Select Item to Offer:</label>
+        <select id="trade-offered-item"></select>
+        <button class="btn btn-success" onclick="sendTradeOffer()">Send Trade Proposal</button>
+      </div>
+      <div class="card">
+        <h3>Incoming & Active Trades</h3>
+        <div id="active-trades-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MESSAGES -->
+  <div id="tab-messages" class="tab-content">
+    <h2>Direct Messages (Inbox)</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Compose Message</h3>
+        <select id="dm-recipient"></select>
+        <textarea id="dm-body" placeholder="Write a message..." rows="4"></textarea>
+        <button class="btn" onclick="sendDirectMessage()">Send Message</button>
+      </div>
+      <div class="card">
+        <h3>Message History</h3>
+        <div class="feed-box" id="inbox-container" style="height:350px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: BUSINESSES -->
+  <div id="tab-businesses" class="tab-content">
+    <h2>Business Empire</h2>
+    <div class="grid-3" id="business-card-container"></div>
+  </div>
+
+  <!-- TAB: INVESTMENTS -->
+  <div id="tab-investments" class="tab-content">
+    <h2>Investment Center</h2>
+    <div class="grid-3" id="investment-card-container"></div>
+  </div>
+
+  <!-- TAB: INVENTORY -->
+  <div id="tab-inventory" class="tab-content">
+    <h2>Player Inventory</h2>
+    <div class="grid-4" id="inventory-container"></div>
+  </div>
+
+  <!-- TAB: CITY -->
+  <div id="tab-city" class="tab-content">
+    <h2>Nexus Commercial District Map</h2>
+    <br>
+    <div class="district-grid">
+      <div class="district-card" onclick="switchTab('businesses')"><div class="icon">🏦</div><b>Bank & Vault</b><p>Manage finances</p></div>
+      <div class="district-card" onclick="switchTab('inventory')"><div class="icon">📦</div><b>Warehouse</b><p>Stored Assets</p></div>
+      <div class="district-card" onclick="switchTab('market')"><div class="icon">🛒</div><b>Marketplace</b><p>Global Trade</p></div>
+      <div class="district-card" onclick="switchTab('businesses')"><div class="icon">🏢</div><b>Business Center</b><p>Corporate Assets</p></div>
+      <div class="district-card" onclick="switchTab('auctions')"><div class="icon">🔨</div><b>Auction House</b><p>Bidding Floor</p></div>
+      <div class="district-card" onclick="switchTab('investments')"><div class="icon">📈</div><b>Investment Hub</b><p>Capital Funds</p></div>
+      <div class="district-card" onclick="triggerSecret('city_park')"><div class="icon">🌴</div><b>Relaxed Area</b><p>Hidden Easter Egg?</p></div>
+    </div>
+  </div>
+
+  <!-- TAB: ACHIEVEMENTS -->
+  <div id="tab-achievements" class="tab-content">
+    <h2>Achievements & Badges</h2>
+    <div class="grid-3" id="achievements-container"></div>
+  </div>
+
+  <!-- TAB: SETTINGS -->
+  <div id="tab-settings" class="tab-content">
+    <h2>Game Settings & Storage</h2>
+    <div class="card">
+      <button class="btn btn-success" onclick="saveGame()">💾 Manual Save</button>
+      <button class="btn btn-danger" onclick="confirmResetData()">⚠️ Reset All Local Data</button>
+    </div>
+  </div>
+
+  <!-- TAB: ADMIN (ABDO ONLY) -->
+  <div id="tab-admin" class="tab-content">
+    <h2 style="color:var(--accent-gold);">👑 Owner Control Terminal</h2>
+    <p style="color:var(--text-muted); margin-bottom: 20px;">Full override privileges for user <b>Abdo</b>.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Command CLI Parser</h3>
+        <input type="text" id="admin-cli" placeholder="/givecash Zayed 10000">
+        <button class="btn btn-warn" onclick="runAdminCLI()">Run Command</button>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top: 10px;">Supported: /givecash, /giveitem, /removeitem, /setlevel, /setxp, /setprestige, /setprice, /crashmarket, /boostmarket, /disable, /enable, /kick, /ban, /unban, /broadcast, /event, /spawn, /clearinventory, /resetplayer, /setcash, /givebusiness, /removebusiness</p>
+      </div>
+
+      <div class="card">
+        <h3>Quick Action Panel</h3>
+        <label>Target Player:</label>
+        <select id="admin-target-player"></select>
+
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+          <button class="btn btn-sm btn-success" onclick="adminQuickCmd('givecash')">+ $50k Cash</button>
+          <button class="btn btn-sm btn-warn" onclick="adminQuickCmd('setlevel')">Set Level 100</button>
+          <button class="btn btn-sm btn-danger" onclick="adminQuickCmd('disable')">Disable Player</button>
+          <button class="btn btn-sm btn-success" onclick="adminQuickCmd('enable')">Enable Player</button>
+          <button class="btn btn-sm btn-danger" onclick="adminQuickCmd('resetplayer')">Reset Player</button>
+        </div>
+
+        <h4 style="margin-top:15px; margin-bottom:5px;">Market & World Events</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <button class="btn btn-sm btn-warn" onclick="adminEvent('Market Boom')">🔥 Trigger Boom</button>
+          <button class="btn btn-sm btn-danger" onclick="adminEvent('Market Crash')">📉 Trigger Crash</button>
+          <button class="btn btn-sm btn-warn" onclick="adminEvent('Double XP')">⚡ Double XP</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-content">
+    <h3 id="modal-title">Confirm Action</h3>
+    <p id="modal-desc" style="margin: 15px 0; color:var(--text-muted);"></p>
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="modal-confirm-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================================================
+   NEXUS: MARKET TYCOON - CORE ENGINE
+   =================================================== */
+
+const STORAGE_KEY = "NEXUS_MARKET_TYCOON_SAVE_V1";
+
+// Rarity Definitions & Catalog
+const ITEM_CATALOG = [
+  { id: "crate", name: "Wooden Crate", rarity: "Common", price: 50, desc: "A sturdy shipping box." },
+  { id: "phone", name: "Old Phone", rarity: "Common", price: 120, desc: "Retro brick phone." },
+  { id: "sneakers", name: "Basic Sneakers", rarity: "Common", price: 80, desc: "Standard canvas shoes." },
+  { id: "drink", name: "Energy Drink", rarity: "Common", price: 15, desc: "Boosts morale." },
+
+  { id: "mouse", name: "Gaming Mouse", rarity: "Uncommon", price: 350, desc: "High DPI precision." },
+  { id: "keyboard", name: "Mechanical Keyboard", rarity: "Uncommon", price: 600, desc: "Clicky RGB keys." },
+  { id: "rare_sneakers", name: "Rare Sneakers", rarity: "Uncommon", price: 1500, desc: "Limited release kick." },
+  { id: "gold_watch", name: "Gold Watch", rarity: "Uncommon", price: 3200, desc: "Shiny wrist wear." },
+
+  { id: "headset", name: "Diamond Headset", rarity: "Rare", price: 8500, desc: "Crystal clear audio." },
+  { id: "controller", name: "Limited Controller", rarity: "Rare", price: 12000, desc: "Pro gamer edition." },
+  { id: "lux_watch", name: "Luxury Watch", rarity: "Rare", price: 25000, desc: "Swiss crafted perfection." },
+  { id: "card", name: "Collector Card", rarity: "Rare", price: 40000, desc: "Mint condition rare card." },
+
+  { id: "golden_pc", name: "Golden PC", rarity: "Epic", price: 95000, desc: "24k gold liquid cooled beast." },
+  { id: "leg_sneakers", name: "Legendary Sneakers", rarity: "Epic", price: 180000, desc: "Signed by icons." },
+  { id: "sports_car", name: "Rare Sports Car", rarity: "Epic", price: 350000, desc: "V12 twin turbo supercar." },
+
+  { id: "dia_car", name: "Diamond Sports Car", rarity: "Legendary", price: 1200000, desc: "Encrusted exotic vehicle." },
+  { id: "mansion", name: "Golden Mansion", rarity: "Legendary", price: 5000000, desc: "Estate with private helipad." },
+  { id: "nexus_crown", name: "Nexus Crown", rarity: "Legendary", price: 25000000, desc: "Symbol of ultimate tycoon power." }
+];
+
+const BUSINESS_CATALOG = [
+  { id: "shop", name: "Convenience Shop", price: 5000, income: 100 },
+  { id: "tech", name: "Tech Store", price: 25000, income: 600 },
+  { id: "lux", name: "Luxury Boutique", price: 100000, income: 2800 },
+  { id: "dealership", name: "Car Dealership", price: 500000, income: 15000 },
+  { id: "warehouse", name: "Logistics Warehouse", price: 1500000, income: 50000 },
+  { id: "auction_house", name: "Auction House", price: 5000000, income: 180000 }
+];
+
+const INITIAL_PLAYERS = [
+  { name: "Abdo", isOwner: true, isAI: false, cash: 250000, xp: 0, level: 1, prestige: 0, disabled: false, inventory: ["Golden PC"], businesses: [] },
+  { name: "Zayed", isOwner: false, isAI: false, cash: 20000, xp: 0, level: 1, prestige: 0, disabled: false, inventory: ["Gaming Mouse"], businesses: [] },
+  { name: "Yousef", isOwner: false, isAI: false, cash: 15000, xp: 0, level: 1, prestige: 0, disabled: false, inventory: [], businesses: [] },
+  { name: "Ibrahim", isOwner: false, isAI: false, cash: 18000, xp: 0, level: 1, prestige: 0, disabled: false, inventory: [], businesses: [] },
+  { name: "Mahmoud", isOwner: false, isAI: false, cash: 22000, xp: 0, level: 1, prestige: 0, disabled: false, inventory: [], businesses: [] },
+  { name: "Saif", isOwner: false, isAI: false, cash: 12000, xp: 0, level: 1, prestige: 0, disabled: false, inventory: [], businesses: [] },
+  { name: "Yahya", isOwner: false, isAI: false, cash: 19000, xp: 0, level: 1, prestige: 0, disabled: false, inventory: [], businesses: [] },
+  { name: "Faisal", isOwner: false, isAI: false, cash: 30000, xp: 0, level: 1, prestige: 0, disabled: false, inventory: [], businesses: [] },
+  { name: "Sultan", isOwner: false, isAI: false, cash: 40000, xp: 0, level: 1, prestige: 0, disabled: false, inventory: [], businesses: [] },
+  { name: "Al Barra", isOwner: false, isAI: false, cash: 15000, xp: 0, level: 1, prestige: 0, disabled: false, inventory: [], businesses: [] },
+  { name: "Barra", isOwner: false, isAI: false, cash: 15000, xp: 0, level: 1, prestige: 0, disabled: false, inventory: [], businesses: [] },
+
+  // AI Players
+  { name: "MarketBot", isOwner: false, isAI: true, personality: "Flipper", cash: 50000, xp: 0, level: 5, prestige: 0, disabled: false, inventory: ["Wooden Crate"], businesses: [] },
+  { name: "TradeMaster", isOwner: false, isAI: true, personality: "Investor", cash: 100000, xp: 0, level: 10, prestige: 0, disabled: false, inventory: ["Gold Watch"], businesses: [] },
+  { name: "RichAI", isOwner: false, isAI: true, personality: "Collector", cash: 1000000, xp: 0, level: 25, prestige: 1, disabled: false, inventory: ["Diamond Headset"], businesses: [] },
+  { name: "BidBot", isOwner: false, isAI: true, personality: "Aggressive", cash: 75000, xp: 0, level: 8, prestige: 0, disabled: false, inventory: [], businesses: [] }
+];
+
+let gameState = {
+  currentUser: "Abdo",
+  players: INITIAL_PLAYERS,
+  market: ITEM_CATALOG.map(i => ({ ...i, currentPrice: i.price, change: 0 })),
+  listings: [],
+  auctions: [
+    { id: 1, item: "Luxury Watch", seller: "TradeMaster", currentBid: 20000, highBidder: "RichAI", timeLeft: 120 }
+  ],
+  trades: [],
+  messages: [],
+  activityFeed: [],
+  activeEvent: null
+};
+
+/* ===================================================
+   INITIALIZATION & LOAD/SAVE
+   =================================================== */
+
+function initGame() {
+  loadGame();
+  renderUserSelector();
+  updateUI();
+
+  // Start Background Loops
+  setInterval(tickMarketPrices, 8000);
+  setInterval(tickAILogic, 5000);
+  setInterval(tickBusinessIncome, 6000);
+  setInterval(tickAuctionTimers, 1000);
+  setInterval(saveGame, 10000);
+
+  logActivity("🌐 NEXUS Tycoon engine initialized.");
+}
+
+function saveGame() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+}
+
+function loadGame() {
+  const data = localStorage.getItem(STORAGE_KEY);
+  if (data) {
+    try {
+      const parsed = JSON.parse(data);
+      gameState = { ...gameState, ...parsed };
+    } catch (e) {
+      console.error("Save load error", e);
+    }
+  }
+}
+
+function confirmResetData() {
+  showModal("Reset All Game Data?", "This will permanently wipe saved progress and reset the environment.", () => {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  });
+}
+
+function getCurrentUserObj() {
+  return gameState.players.find(p => p.name === gameState.currentUser) || gameState.players[0];
+}
+
+/* ===================================================
+   UI & TAB ROUTING
+   =================================================== */
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+  const targetTab = document.getElementById(`tab-${tabId}`);
+  if (targetTab) targetTab.classList.add('active');
+
+  updateUI();
+}
+
+function renderUserSelector() {
+  const sel = document.getElementById('user-switcher');
+  sel.innerHTML = "";
+  gameState.players.filter(p => !p.isAI).forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.innerText = `${p.isOwner ? '👑 ' : ''}${p.name}`;
+    if (p.name === gameState.currentUser) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function switchUserProfile(name) {
+  gameState.currentUser = name;
+  logActivity(`Switched session active profile to: ${name}`);
+  updateUI();
+}
+
+function updateUI() {
+  const user = getCurrentUserObj();
+  
+  // Header Info
+  document.getElementById('user-display-name').innerText = user.name;
+  document.getElementById('header-cash').innerText = user.cash.toLocaleString();
+  document.getElementById('header-level').innerText = user.level;
+  document.getElementById('header-prestige').innerText = user.prestige;
+  
+  const roleBadge = document.getElementById('user-role-badge');
+  roleBadge.innerHTML = user.isOwner ? `<span class="badge-owner">👑 OWNER</span>` : '';
+
+  // Show/Hide Admin Nav Tab
+  document.getElementById('admin-nav-item').style.display = user.isOwner ? 'flex' : 'none';
+
+  // Fill current player placeholders
+  document.querySelectorAll('.current-player-name').forEach(el => el.innerText = user.name);
+
+  // Home Dash
+  const invVal = user.inventory.reduce((acc, itemName) => {
+    const found = gameState.market.find(m => m.name === itemName);
+    return acc + (found ? found.currentPrice : 100);
+  }, 0);
+
+  document.getElementById('dash-networth').innerText = (user.cash + invVal).toLocaleString();
+  document.getElementById('dash-inv-val').innerText = invVal.toLocaleString();
+  document.getElementById('dash-biz-count').innerText = user.businesses.length;
+  document.getElementById('dash-xp-text').innerText = `${user.xp} / ${user.level * 1000} XP`;
+  document.getElementById('dash-xp-bar').style.width = `${Math.min(100, (user.xp / (user.level * 1000)) * 100)}%`;
+
+  // Dynamic Content Sections
+  renderMarketUI();
+  renderAuctionsUI();
+  renderBusinessesUI();
+  renderInventoryUI();
+  renderTradesUI();
+  renderMessagesUI();
+  renderAdminTargetSelect();
+
+  // Active Event Banner
+  const banner = document.getElementById('event-banner');
+  if (gameState.activeEvent) {
+    banner.style.display = 'block';
+    banner.innerText = `🔥 WORLD EVENT: ${gameState.activeEvent.name.toUpperCase()} ACTIVE!`;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function logActivity(msg) {
+  const timestamp = new Date().toLocaleTimeString();
+  const entry = `[${timestamp}] ${msg}`;
+  gameState.activityFeed.unshift(entry);
+  if (gameState.activityFeed.length > 50) gameState.activityFeed.pop();
+
+  const box = document.getElementById('global-activity-feed');
+  if (box) {
+    box.innerHTML = gameState.activityFeed.map(f => `<div class="feed-item">${f}</div>`).join('');
+  }
+}
+
+/* ===================================================
+   MARKET & AI ENGINE
+   =================================================== */
+
+function tickMarketPrices() {
+  gameState.market.forEach(item => {
+    let deltaPct = (Math.random() - 0.49) * 0.1; // +/- 5% average shift
+
+    if (gameState.activeEvent?.name === 'Market Boom') deltaPct += 0.08;
+    if (gameState.activeEvent?.name === 'Market Crash') deltaPct -= 0.12;
+
+    const newPrice = Math.max(10, Math.round(item.currentPrice * (1 + deltaPct)));
+    item.change = Math.round(((newPrice - item.currentPrice) / item.currentPrice) * 100);
+    item.currentPrice = newPrice;
+  });
+
+  renderMarketUI();
+}
+
+function renderMarketUI() {
+  const itemSel = document.getElementById('list-item-select');
+  const user = getCurrentUserObj();
+  
+  if (itemSel) {
+    itemSel.innerHTML = user.inventory.map(i => `<option value="${i}">${i}</option>`).join('');
+  }
+
+  const indexTbody = document.getElementById('market-items-table');
+  if (indexTbody) {
+    indexTbody.innerHTML = gameState.market.map(m => `
+      <tr>
+        <td><b>${m.name}</b></td>
+        <td class="rarity-${m.rarity}">${m.rarity}</td>
+        <td>$${m.currentPrice.toLocaleString()}</td>
+        <td style="color:${m.change >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">${m.change >= 0 ? '+' : ''}${m.change}%</td>
+        <td><button class="btn btn-sm" onclick="buyMarketItem('${m.name}')">Buy Stock</button></td>
+      </tr>
+    `).join('');
+  }
+
+  const listTbody = document.getElementById('active-listings-table');
+  if (listTbody) {
+    listTbody.innerHTML = gameState.listings.map((l, idx) => `
+      <tr>
+        <td>${l.item}</td>
+        <td>$${l.price.toLocaleString()}</td>
+        <td>${l.seller}</td>
+        <td>${l.seller === user.name ? `<button class="btn btn-sm btn-danger" onclick="cancelListing(${idx})">Cancel</button>` : `<button class="btn btn-sm btn-success" onclick="buyListing(${idx})">Buy Listing</button>`}</td>
+      </tr>
+    `).join('');
+  }
+}
+
+function buyMarketItem(itemName) {
+  const user = getCurrentUserObj();
+  if (user.disabled) return alert("Your account is disabled by Admin.");
+
+  const item = gameState.market.find(m => m.name === itemName);
+  if (!item) return;
+
+  if (user.cash >= item.currentPrice) {
+    user.cash -= item.currentPrice;
+    user.inventory.push(item.name);
+    addXP(user, 50);
+    logActivity(`💰 <b>${user.name}</b> purchased ${item.name} for $${item.currentPrice.toLocaleString()}`);
+    updateUI();
+  } else {
+    alert("Insufficient cash!");
+  }
+}
+
+function createListing() {
+  const user = getCurrentUserObj();
+  if (user.disabled) return alert("Account disabled.");
+
+  const itemName = document.getElementById('list-item-select').value;
+  const price = parseInt(document.getElementById('list-item-price').value);
+
+  if (!itemName || isNaN(price) || price <= 0) return alert("Select an item and valid price.");
+
+  const idx = user.inventory.indexOf(itemName);
+  if (idx > -1) {
+    user.inventory.splice(idx, 1);
+    gameState.listings.push({ item: itemName, price: price, seller: user.name });
+    logActivity(`🛒 <b>${user.name}</b> listed ${itemName} for $${price.toLocaleString()}`);
+    updateUI();
+  }
+}
+
+function buyListing(index) {
+  const user = getCurrentUserObj();
+  const listing = gameState.listings[index];
+  if (!listing) return;
+
+  if (user.cash >= listing.price) {
+    user.cash -= listing.price;
+    user.inventory.push(listing.item);
+
+    const seller = gameState.players.find(p => p.name === listing.seller);
+    if (seller) seller.cash += listing.price;
+
+    gameState.listings.splice(index, 1);
+    addXP(user, 100);
+    logActivity(`🛍️ <b>${user.name}</b> bought ${listing.item} from ${listing.seller} for $${listing.price.toLocaleString()}`);
+    updateUI();
+  } else {
+    alert("Cannot afford this listing.");
+  }
+}
+
+function cancelListing(index) {
+  const user = getCurrentUserObj();
+  const listing = gameState.listings[index];
+  if (listing && listing.seller === user.name) {
+    user.inventory.push(listing.item);
+    gameState.listings.splice(index, 1);
+    updateUI();
+  }
+}
+
+/* ===================================================
+   AUCTION SYSTEM
+   =================================================== */
+
+function renderAuctionsUI() {
+  const tbody = document.getElementById('auctions-table');
+  if (!tbody) return;
+
+  tbody.innerHTML = gameState.auctions.map(a => `
+    <tr>
+      <td><b>${a.item}</b></td>
+      <td>$${a.currentBid.toLocaleString()}</td>
+      <td>${a.highBidder}</td>
+      <td>${a.seller}</td>
+      <td>${a.timeLeft}s</td>
+      <td><button class="btn btn-sm btn-warn" onclick="placeAuctionBid(${a.id})">Bid +10%</button></td>
+    </tr>
+  `).join('');
+}
+
+function placeAuctionBid(auctionId) {
+  const user = getCurrentUserObj();
+  const auc = gameState.auctions.find(a => a.id === auctionId);
+  if (!auc) return;
+
+  const minBid = Math.round(auc.currentBid * 1.1);
+  if (user.cash >= minBid) {
+    auc.currentBid = minBid;
+    auc.highBidder = user.name;
+    logActivity(`🔨 <b>${user.name}</b> placed high bid of $${minBid.toLocaleString()} on ${auc.item}`);
+    updateUI();
+  } else {
+    alert("Insufficient cash for bid.");
+  }
+}
+
+function tickAuctionTimers() {
+  gameState.auctions.forEach((auc, idx) => {
+    auc.timeLeft--;
+    if (auc.timeLeft <= 0) {
+      // Award item to winner
+      const winner = gameState.players.find(p => p.name === auc.highBidder);
+      if (winner) winner.inventory.push(auc.item);
+
+      const seller = gameState.players.find(p => p.name === auc.seller);
+      if (seller) seller.cash += auc.currentBid;
+
+      logActivity(`🏆 Auction ended! <b>${auc.highBidder}</b> won ${auc.item} for $${auc.currentBid.toLocaleString()}`);
+      gameState.auctions.splice(idx, 1);
+
+      // Respawn random auction
+      setTimeout(() => {
+        const randItem = ITEM_CATALOG[Math.floor(Math.random() * ITEM_CATALOG.length)];
+        gameState.auctions.push({
+          id: Date.now(),
+          item: randItem.name,
+          seller: "TradeMaster",
+          currentBid: randItem.price,
+          highBidder: "TradeMaster",
+          timeLeft: 60
+        });
+      }, 5000);
+    }
+  });
+  renderAuctionsUI();
+}
+
+/* ===================================================
+   AI TICK ENGINE
+   =================================================== */
+
+function tickAILogic() {
+  const aiBots = gameState.players.filter(p => p.isAI && !p.disabled);
+  if (!aiBots.length) return;
+
+  const bot = aiBots[Math.floor(Math.random() * aiBots.length)];
+
+  // AI Decision Tree
+  const actionRoll = Math.random();
+
+  if (actionRoll < 0.35 && gameState.listings.length > 0) {
+    // Buy cheap listing
+    const listingIdx = Math.floor(Math.random() * gameState.listings.length);
+    const listing = gameState.listings[listingIdx];
+    if (bot.cash >= listing.price && listing.seller !== bot.name) {
+      bot.cash -= listing.price;
+      bot.inventory.push(listing.item);
+      const seller = gameState.players.find(p => p.name === listing.seller);
+      if (seller) seller.cash += listing.price;
+
+      gameState.listings.splice(listingIdx, 1);
+      logActivity(`🤖 AI <b>${bot.name}</b> bought ${listing.item} from ${listing.seller}`);
+    }
+  } else if (actionRoll < 0.65 && bot.inventory.length > 0) {
+    // List item for profit
+    const item = bot.inventory.pop();
+    const marketItem = gameState.market.find(m => m.name === item);
+    const markupPrice = Math.round((marketItem ? marketItem.currentPrice : 500) * 1.15);
+
+    gameState.listings.push({ item: item, price: markupPrice, seller: bot.name });
+    logActivity(`🤖 AI <b>${bot.name}</b> created listing for ${item} at $${markupPrice}`);
+  } else if (actionRoll < 0.85 && gameState.auctions.length > 0) {
+    // Bid on active auction
+    const auc = gameState.auctions[0];
+    const bidAmount = Math.round(auc.currentBid * 1.1);
+    if (bot.cash >= bidAmount && auc.highBidder !== bot.name) {
+      auc.currentBid = bidAmount;
+      auc.highBidder = bot.name;
+      logActivity(`🔨 AI <b>${bot.name}</b> bid $${bidAmount.toLocaleString()} on ${auc.item}`);
+    }
+  }
+
+  updateUI();
+}
+
+/* ===================================================
+   TRADING & MESSAGING SYSTEMS
+   =================================================== */
+
+function renderTradesUI() {
+  const targetSel = document.getElementById('trade-target-player');
+  const itemSel = document.getElementById('trade-offered-item');
+  const user = getCurrentUserObj();
+
+  if (targetSel) {
+    targetSel.innerHTML = gameState.players.filter(p => p.name !== user.name).map(p => `<option value="${p.name}">${p.name} ${p.isAI ? '(AI)' : ''}</option>`).join('');
+  }
+
+  if (itemSel) {
+    itemSel.innerHTML = `<option value="">-- No Item --</option>` + user.inventory.map(i => `<option value="${i}">${i}</option>`).join('');
+  }
+
+  const container = document.getElementById('active-trades-list');
+  if (container) {
+    container.innerHTML = gameState.trades.filter(t => t.to === user.name || t.from === user.name).map((t, idx) => `
+      <div style="background:var(--bg-secondary); padding:10px; border-radius:8px; margin-bottom:10px;">
+        <p><b>Trade Offer from ${t.from} to ${t.to}</b></p>
+        <p>Offered Cash: $${t.cash.toLocaleString()}</p>
+        <p>Offered Item: ${t.item || 'None'}</p>
+        ${t.to === user.name ? `
+          <button class="btn btn-sm btn-success" onclick="acceptTrade(${idx})">Accept</button>
+          <button class="btn btn-sm btn-danger" onclick="declineTrade(${idx})">Decline</button>
+        ` : `<span style="font-size:0.8rem; color:var(--text-muted);">Pending response...</span>`}
+      </div>
+    `).join('') || '<p style="color:var(--text-muted);">No active trades.</p>';
+  }
+}
+
+function sendTradeOffer() {
+  const user = getCurrentUserObj();
+  const target = document.getElementById('trade-target-player').value;
+  const cash = parseInt(document.getElementById('trade-offered-cash').value) || 0;
+  const item = document.getElementById('trade-offered-item').value;
+
+  if (cash > user.cash) return alert("You don't have enough cash.");
+
+  gameState.trades.push({ from: user.name, to: target, cash: cash, item: item });
+  logActivity(`🤝 <b>${user.name}</b> sent trade offer to ${target}`);
+  updateUI();
+}
+
+function acceptTrade(index) {
+  const user = getCurrentUserObj();
+  const trade = gameState.trades[index];
+  if (!trade) return;
+
+  const sender = gameState.players.find(p => p.name === trade.from);
+  if (sender && sender.cash >= trade.cash) {
+    sender.cash -= trade.cash;
+    user.cash += trade.cash;
+
+    if (trade.item) {
+      const itemIdx = sender.inventory.indexOf(trade.item);
+      if (itemIdx > -1) {
+        sender.inventory.splice(itemIdx, 1);
+        user.inventory.push(trade.item);
+      }
+    }
+
+    logActivity(`✅ <b>${user.name}</b> accepted trade from ${sender.name}`);
+    gameState.trades.splice(index, 1);
+    updateUI();
+  }
+}
+
+function declineTrade(index) {
+  gameState.trades.splice(index, 1);
+  updateUI();
+}
+
+function renderMessagesUI() {
+  const sel = document.getElementById('dm-recipient');
+  const user = getCurrentUserObj();
+
+  if (sel) {
+    sel.innerHTML = gameState.players.filter(p => !p.isAI && p.name !== user.name).map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+  }
+
+  const container = document.getElementById('inbox-container');
+  if (container) {
+    container.innerHTML = gameState.messages.filter(m => m.to === user.name || m.from === user.name).map(m => `
+      <div class="feed-item">
+        <b>${m.from} ➔ ${m.to}:</b> ${m.body}
+      </div>
+    `).join('') || '<p style="color:var(--text-muted);">No direct messages.</p>';
+  }
+}
+
+function sendDirectMessage() {
+  const user = getCurrentUserObj();
+  const recipient = document.getElementById('dm-recipient').value;
+  const body = document.getElementById('dm-body').value.trim();
+
+  if (!body) return;
+
+  gameState.messages.push({ from: user.name, to: recipient, body: body });
+  document.getElementById('dm-body').value = "";
+  logActivity(`💬 DM sent from <b>${user.name}</b> to ${recipient}`);
+  updateUI();
+}
+
+/* ===================================================
+   BUSINESS & INVENTORY SYSTEMS
+   =================================================== */
+
+function tickBusinessIncome() {
+  gameState.players.forEach(p => {
+    p.businesses.forEach(bId => {
+      const biz = BUSINESS_CATALOG.find(b => b.id === bId);
+      if (biz) {
+        const income = Math.round(biz.income * (1 + (p.prestige * 0.1)));
+        p.cash += income;
+      }
+    });
+  });
+  updateUI();
+}
+
+function renderBusinessesUI() {
+  const container = document.getElementById('business-card-container');
+  const user = getCurrentUserObj();
+  if (!container) return;
+
+  container.innerHTML = BUSINESS_CATALOG.map(b => {
+    const owned = user.businesses.includes(b.id);
+    return `
+      <div class="card">
+        <h3>${b.name}</h3>
+        <p>Price: <b>$${b.price.toLocaleString()}</b></p>
+        <p>Income: <b>+$${b.income.toLocaleString()}/tick</b></p>
+        <br>
+        ${owned ? `<span class="btn btn-success" style="display:inline-block;">Owned</span>` : `<button class="btn" onclick="buyBusiness('${b.id}')">Acquire Enterprise</button>`}
+      </div>
+    `;
+  }).join('');
+}
+
+function buyBusiness(bId) {
+  const user = getCurrentUserObj();
+  const biz = BUSINESS_CATALOG.find(b => b.id === bId);
+
+  if (user.cash >= biz.price) {
+    user.cash -= biz.price;
+    user.businesses.push(biz.id);
+    addXP(user, 500);
+    logActivity(`🏢 <b>${user.name}</b> bought business: ${biz.name}`);
+    updateUI();
+  } else {
+    alert("Cannot afford business.");
+  }
+}
+
+function renderInventoryUI() {
+  const container = document.getElementById('inventory-container');
+  const user = getCurrentUserObj();
+  if (!container) return;
+
+  container.innerHTML = user.inventory.map(itemName => {
+    const catalogItem = ITEM_CATALOG.find(i => i.name === itemName) || { rarity: "Common", desc: "Standard item" };
+    return `
+      <div class="card">
+        <h3 class="rarity-${catalogItem.rarity}">${itemName}</h3>
+        <p>${catalogItem.desc}</p>
+      </div>
+    `;
+  }).join('') || '<p style="color:var(--text-muted);">Inventory empty.</p>';
+}
+
+/* ===================================================
+   XP, PRESTIGE & ACHIEVEMENTS
+   =================================================== */
+
+function addXP(player, amount) {
+  if (gameState.activeEvent?.name === 'Double XP') amount *= 2;
+  player.xp += amount;
+  const targetXp = player.level * 1000;
+  if (player.xp >= targetXp) {
+    player.level++;
+    player.xp -= targetXp;
+    logActivity(`⭐ <b>${player.name}</b> leveled up to Level ${player.level}!`);
+  }
+}
+
+function triggerPrestige() {
+  const user = getCurrentUserObj();
+  if (user.level < 10) return alert("Requires Level 10 to prestige.");
+
+  showModal("Prestige / Rebirth", "Reset cash and level in exchange for +1 Prestige rank (+10% permanent income boost)?", () => {
+    user.cash = 10000;
+    user.level = 1;
+    user.xp = 0;
+    user.prestige++;
+    logActivity(`🚀 <b>${user.name}</b> PRESTIGED to Rank ${user.prestige}!`);
+    updateUI();
+  });
+}
+
+/* ===================================================
+   ADMIN COMMAND PARSER & OVERRIDES
+   =================================================== */
+
+function renderAdminTargetSelect() {
+  const sel = document.getElementById('admin-target-player');
+  if (!sel) return;
+
+  sel.innerHTML = gameState.players.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+}
+
+function runAdminCLI() {
+  const user = getCurrentUserObj();
+  if (!user.isOwner) return alert("Access denied.");
+
+  const rawCmd = document.getElementById('admin-cli').value.trim();
+  if (!rawCmd) return;
+
+  const parts = rawCmd.split(' ');
+  const cmd = parts[0].toLowerCase();
+  const targetName = parts[1];
+  const arg = parts[2];
+
+  const target = gameState.players.find(p => p.name?.toLowerCase() === targetName?.toLowerCase());
+
+  switch(cmd) {
+    case "/givecash":
+      if (target && !isNaN(arg)) {
+        target.cash += parseInt(arg);
+        logActivity(`👑 ADMIN gave $${parseInt(arg).toLocaleString()} cash to ${target.name}`);
+      }
+      break;
+    case "/setlevel":
+      if (target && !isNaN(arg)) {
+        target.level = parseInt(arg);
+        logActivity(`👑 ADMIN set level of ${target.name} to ${arg}`);
+      }
+      break;
+    case "/crashmarket":
+      gameState.market.forEach(m => m.currentPrice = Math.max(5, Math.round(m.currentPrice * 0.3)));
+      logActivity(`👑 ADMIN crashed market prices!`);
+      break;
+    case "/boostmarket":
+      gameState.market.forEach(m => m.currentPrice = Math.round(m.currentPrice * 2.5));
+      logActivity(`👑 ADMIN boosted market prices!`);
+      break;
+    case "/disable":
+      if (target) {
+        target.disabled = true;
+        logActivity(`👑 ADMIN disabled player ${target.name}`);
+      }
+      break;
+    case "/enable":
+      if (target) {
+        target.disabled = false;
+        logActivity(`👑 ADMIN enabled player ${target.name}`);
+      }
+      break;
+    default:
+      alert("Command not recognized.");
+  }
+
+  document.getElementById('admin-cli').value = "";
+  updateUI();
+}
+
+function adminQuickCmd(action) {
+  const targetName = document.getElementById('admin-target-player').value;
+  const target = gameState.players.find(p => p.name === targetName);
+  if (!target) return;
+
+  if (action === 'givecash') target.cash += 50000;
+  if (action === 'setlevel') target.level = 100;
+  if (action === 'disable') target.disabled = true;
+  if (action === 'enable') target.disabled = false;
+  if (action === 'resetplayer') {
+    showModal("Reset Player", `Reset statistics for ${target.name}?`, () => {
+      target.cash = 10000;
+      target.inventory = [];
+      target.level = 1;
+      updateUI();
+    });
+  }
+  updateUI();
+}
+
+function adminEvent(eventName) {
+  gameState.activeEvent = { name: eventName };
+  logActivity(`👑 ADMIN Started Event: ${eventName}`);
+  updateUI();
+}
+
+/* ===================================================
+   MODALS & SECRETS
+   =================================================== */
+
+function showModal(title, desc, onConfirm) {
+  document.getElementById('modal-title').innerText = title;
+  document.getElementById('modal-desc').innerText = desc;
+  const btn = document.getElementById('modal-confirm-btn');
+
+  btn.onclick = () => {
+    onConfirm();
+    closeModal();
+  };
+
+  document.getElementById('confirm-modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('confirm-modal').style.display = 'none';
+}
+
+function triggerSecret(location) {
+  const user = getCurrentUserObj();
+  user.cash += 50000;
+  logActivity(`🔍 Secret Found in ${location}! <b>${user.name}</b> earned $50,000 bonus cash.`);
+  updateUI();
+}
+
+window.onload = initGame;
+</script>
+</body>
+</html>
